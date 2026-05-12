@@ -1,1100 +1,399 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diagnóstico de Maturidade em Inovação - Dashboard Interativo</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        :root {
-            --primary: #1e40af;
-            --secondary: #3b82f6;
-            --accent: #60a5fa;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --text: #1e293b;
-            --text-light: #64748b;
-            --border: #e2e8f0;
-            --success: #16a34a;
-            --warning: #f59e0b;
-            --danger: #dc2626;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-        }
-        .header {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            padding: 2rem;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-        }
-        .header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
-        .header p { opacity: 0.9; font-size: 1rem; }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: 320px 1fr;
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-        @media (max-width: 1024px) {
-            .grid { grid-template-columns: 1fr; }
-        }
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-        .card {
-            background: var(--card);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border: 1px solid var(--border);
-        }
-        .card h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .form-group { margin-bottom: 1rem; }
-        .form-group label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 500;
-            margin-bottom: 0.375rem;
-            color: var(--text);
-        }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 0.625rem;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 0.875rem;
-            transition: all 0.2s;
-        }
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: var(--secondary);
-            box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
-        }
-        .scores-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
-        .score-input {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .score-input label {
-            font-size: 0.7rem;
-            color: var(--text-light);
-            margin-bottom: 0.25rem;
-        }
-        .score-input input {
-            width: 100%;
-            text-align: center;
-            padding: 0.375rem;
-            font-size: 0.875rem;
-        }
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            width: 100%;
-        }
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-        .btn-primary:hover { background: #1e3a8a; transform: translateY(-1px); }
-        .btn-success {
-            background: var(--success);
-            color: white;
-        }
-        .btn-success:hover { background: #15803d; }
-        .btn-secondary {
-            background: var(--secondary);
-            color: white;
-        }
-        .btn-secondary:hover { background: #2563eb; }
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-        }
-        .btn-danger:hover { background: #b91c1c; }
-        .btn-sm { padding: 0.5rem 1rem; font-size: 0.8rem; width: auto; }
-        .main-content {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-        .filters {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            align-items: end;
-        }
-        .filter-group { flex: 1; min-width: 200px; }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-        .stat-card {
-            background: var(--card);
-            border-radius: 10px;
-            padding: 1.25rem;
-            border-left: 4px solid var(--secondary);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-        }
-        .stat-card h3 {
-            font-size: 0.875rem;
-            color: var(--text-light);
-            margin-bottom: 0.5rem;
-        }
-        .stat-card .value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
-        .stat-card .sub {
-            font-size: 0.75rem;
-            color: var(--text-light);
-            margin-top: 0.25rem;
-        }
-        .chart-container {
-            position: relative;
-            height: 400px;
-            margin-top: 1rem;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-        }
-        th, td {
-            padding: 0.75rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }
-        th {
-            background: #f1f5f9;
-            font-weight: 600;
-            color: var(--primary);
-            position: sticky;
-            top: 0;
-        }
-        tr:hover { background: #f8fafc; }
-        .badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        .badge-blue { background: #dbeafe; color: #1e40af; }
-        .badge-green { background: #dcfce7; color: #166534; }
-        .badge-yellow { background: #fef3c7; color: #92400e; }
-        .badge-red { background: #fee2e2; color: #991b1b; }
-        .dimensao-header {
-            background: #f8fafc;
-            font-weight: 600;
-            color: var(--primary);
-        }
-        .actions {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .respondente-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem;
-            background: #f8fafc;
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
-            border: 1px solid var(--border);
-        }
-        .respondente-info { font-size: 0.875rem; }
-        .respondente-info strong { display: block; color: var(--text); }
-        .respondente-info span { font-size: 0.75rem; color: var(--text-light); }
-        .delete-btn {
-            background: none;
-            border: none;
-            color: var(--danger);
-            cursor: pointer;
-            padding: 0.25rem;
-            border-radius: 4px;
-        }
-        .delete-btn:hover { background: #fee2e2; }
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: var(--text-light);
-        }
-        .empty-state svg {
-            width: 64px;
-            height: 64px;
-            margin-bottom: 1rem;
-            opacity: 0.3;
-        }
-        .toast {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            background: var(--success);
-            color: white;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-            transform: translateY(100px);
-            opacity: 0;
-            transition: all 0.3s;
-            z-index: 1000;
-            font-weight: 500;
-        }
-        .toast.show { transform: translateY(0); opacity: 1; }
-        .toast.error { background: var(--danger); }
-        .dim-legend {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-        .dim-item {
-            display: flex;
-            align-items: center;
-            gap: 0.375rem;
-            font-size: 0.8rem;
-        }
-        .dim-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 3px;
-        }
-        .tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            border-bottom: 2px solid var(--border);
-            padding-bottom: 0.5rem;
-        }
-        .tab {
-            padding: 0.5rem 1rem;
-            border: none;
-            background: none;
-            cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--text-light);
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-        .tab.active {
-            background: #dbeafe;
-            color: var(--primary);
-        }
-        .tab:hover { background: #f1f5f9; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .input-group {
-            display: flex;
-            gap: 0.5rem;
-            align-items: end;
-        }
-        .input-group .form-group { flex: 1; }
-        .persist-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.375rem;
-            background: #dcfce7;
-            color: #166534;
-            padding: 0.375rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-bottom: 0.75rem;
-        }
-        .persist-badge.off {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        .file-input-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-            width: 100%;
-        }
-        .file-input-wrapper input[type=file] {
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnóstico de Maturidade — Debug</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--primary:#1e40af;--secondary:#3b82f6;--bg:#f8fafc;--card:#fff;--text:#1e293b;--text-light:#64748b;--border:#e2e8f0;--success:#16a34a;--danger:#dc2626;--warning:#f59e0b}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+.header{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;padding:2rem}
+.container{max-width:1400px;margin:0 auto;padding:2rem}
+.grid{display:grid;grid-template-columns:360px 1fr;gap:2rem;margin-top:2rem}
+@media(max-width:1024px){.grid{grid-template-columns:1fr}}
+.sidebar{display:flex;flex-direction:column;gap:1.5rem}
+.card{background:var(--card);border-radius:12px;padding:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,.1);border:1px solid var(--border)}
+.card h2{font-size:1.1rem;font-weight:600;margin-bottom:1rem;color:var(--primary)}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:.875rem;font-weight:500;margin-bottom:.375rem}
+.form-group input,.form-group select{width:100%;padding:.625rem;border:1px solid var(--border);border-radius:8px;font-size:.875rem}
+.scores-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-top:.5rem}
+.score-input{display:flex;flex-direction:column;align-items:center}
+.score-input label{font-size:.7rem;color:var(--text-light);margin-bottom:.25rem}
+.score-input input{width:100%;text-align:center;padding:.375rem;font-size:.875rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1.5rem;border:none;border-radius:8px;font-size:.875rem;font-weight:600;cursor:pointer;width:100%}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-success{background:var(--success);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-sm{padding:.5rem 1rem;font-size:.8rem;width:auto}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.main-content{display:flex;flex-direction:column;gap:1.5rem}
+.status-online{display:inline-flex;align-items:center;gap:.375rem;background:#dcfce7;color:#166534;padding:.375rem .75rem;border-radius:9999px;font-size:.75rem;font-weight:600}
+.status-offline{display:inline-flex;align-items:center;gap:.375rem;background:#fee2e2;color:#991b1b;padding:.375rem .75rem;border-radius:9999px;font-size:.75rem;font-weight:600}
+.status-warn{display:inline-flex;align-items:center;gap:.375rem;background:#fef3c7;color:#92400e;padding:.375rem .75rem;border-radius:9999px;font-size:.75rem;font-weight:600}
+.loading{display:inline-block;width:16px;height:16px;border:2px solid #e2e8f0;border-top-color:var(--primary);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.debug-box{background:#1e293b;color:#e2e8f0;padding:1rem;border-radius:8px;font-family:monospace;font-size:.8rem;max-height:300px;overflow-y:auto;margin-top:1rem}
+.debug-box .ok{color:#86efac}
+.debug-box .err{color:#fca5a5}
+.debug-box .info{color:#93c5fd}
+.chart-container{position:relative;height:400px;margin-top:1rem}
+table{width:100%;border-collapse:collapse;font-size:.875rem;margin-top:.5rem}
+th,td{padding:.75rem;text-align:left;border-bottom:1px solid var(--border)}
+th{background:#f1f5f9;font-weight:600;color:var(--primary)}
+.badge{display:inline-block;padding:.25rem .75rem;border-radius:9999px;font-size:.75rem;font-weight:600}
+.badge-blue{background:#dbeafe;color:#1e40af}
+.badge-green{background:#dcfce7;color:#166534}
+.badge-yellow{background:#fef3c7;color:#92400e}
+.badge-red{background:#fee2e2;color:#991b1b}
+.tabs{display:flex;gap:.5rem;margin-bottom:1rem;border-bottom:2px solid var(--border);padding-bottom:.5rem}
+.tab{padding:.5rem 1rem;border:none;background:none;cursor:pointer;font-size:.875rem;font-weight:500;color:var(--text-light);border-radius:6px}
+.tab.active{background:#dbeafe;color:var(--primary)}
+.toast{position:fixed;bottom:2rem;right:2rem;background:var(--success);color:#fff;padding:1rem 1.5rem;border-radius:8px;box-shadow:0 10px 15px -3px rgba(0,0,0,.1);transform:translateY(100px);opacity:0;transition:all .3s;z-index:1000;font-weight:500}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.error{background:var(--danger)}
+</style>
 <base target="_blank">
 </head>
 <body>
-    <div class="header">
-        <h1>📊 Diagnóstico de Maturidade em Inovação</h1>
-        <p>Hub SENAI 2026 — Dashboard Interativo para Análise Consolidada por Dimensão</p>
-    </div>
-
-    <div class="container">
-        <div class="grid">
-            <div class="sidebar">
-                <!-- Persistência -->
-                <div class="card">
-                    <h2>💾 Persistência de Dados</h2>
-                    <div class="persist-badge" id="persistStatus">
-                        <span>●</span> Dados salvos automaticamente no navegador
-                    </div>
-                    <p style="font-size:0.8rem;color:var(--text-light);margin-bottom:0.75rem">
-                        Seus dados ficam salvos no navegador mesmo após fechar a aba. Use os botões abaixo para backup ou transferência entre dispositivos.
-                    </p>
-                    <div class="actions">
-                        <button class="btn btn-success btn-sm" onclick="exportarJSON()">
-                            <span>💾</span> Salvar .json
-                        </button>
-                        <div class="file-input-wrapper">
-                            <button class="btn btn-secondary btn-sm">
-                                <span>📂</span> Carregar .json
-                            </button>
-                            <input type="file" id="importJSON" accept=".json" onchange="importarJSON(this)">
-                        </div>
-                    </div>
-                    <div class="actions" style="margin-top:0.5rem">
-                        <button class="btn btn-danger btn-sm" onclick="limparStorage()">
-                            <span>🗑️</span> Limpar tudo
-                        </button>
-                        <button class="btn btn-primary btn-sm" onclick="resetarDadosIniciais()">
-                            <span>↺</span> Reset inicial
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Formulário de Adição -->
-                <div class="card">
-                    <h2>➕ Adicionar Respondente</h2>
-                    <form id="formAdd">
-                        <div class="form-group">
-                            <label>Cooperativa</label>
-                            <input type="text" id="cooperativa" placeholder="Ex: Capal" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Respondente(s)</label>
-                            <input type="text" id="respondente" placeholder="Ex: João Silva" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Scores por Pergunta (1-6)</label>
-                            <div class="scores-grid" id="scoresGrid"></div>
-                        </div>
-                        <button type="submit" class="btn btn-primary">
-                            <span>💾</span> Salvar Respondente
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Lista de Respondentes -->
-                <div class="card">
-                    <h2>👥 Respondentes</h2>
-                    <div id="listaRespondentes"></div>
-                    <div class="actions">
-                        <button class="btn btn-success btn-sm" onclick="exportarExcel()">
-                            <span>📥</span> Excel
-                        </button>
-                        <button class="btn btn-secondary btn-sm" onclick="exportarCSV()">
-                            <span>📄</span> CSV
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="main-content">
-                <!-- Filtros -->
-                <div class="card">
-                    <h2>🔍 Filtros e Visualização</h2>
-                    <div class="filters">
-                        <div class="filter-group">
-                            <label style="font-size:0.875rem;font-weight:500;margin-bottom:0.375rem;display:block;">Filtrar por Cooperativa</label>
-                            <select id="filtroCooperativa" onchange="atualizarDashboard()">
-                                <option value="todas">Todas as Cooperativas</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label style="font-size:0.875rem;font-weight:500;margin-bottom:0.375rem;display:block;">Comparar com Referência</label>
-                            <select id="mostrarReferencia" onchange="atualizarDashboard()">
-                                <option value="sim">Sim (Máx. Possível)</option>
-                                <option value="nao">Não</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label style="font-size:0.875rem;font-weight:500;margin-bottom:0.375rem;display:block;">Tipo de Gráfico</label>
-                            <select id="tipoGrafico" onchange="atualizarDashboard()">
-                                <option value="radar">Radar</option>
-                                <option value="bar">Barras</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Estatísticas -->
-                <div class="stats-grid" id="statsGrid"></div>
-
-                <!-- Gráfico -->
-                <div class="card">
-                    <h2>📈 Gráfico Comparativo por Dimensão</h2>
-                    <div class="chart-container">
-                        <canvas id="chartPrincipal"></canvas>
-                    </div>
-                    <div class="dim-legend" id="dimLegend"></div>
-                </div>
-
-                <!-- Abas de Tabelas -->
-                <div class="card">
-                    <div class="tabs">
-                        <button class="tab active" onclick="switchTab('tabDimensoes')">Médias por Dimensão</button>
-                        <button class="tab" onclick="switchTab('tabPerguntas')">Scores por Pergunta</button>
-                        <button class="tab" onclick="switchTab('tabResumo')">Resumo Executivo</button>
-                    </div>
-
-                    <div id="tabDimensoes" class="tab-content active">
-                        <div id="tabelaDimensoes"></div>
-                    </div>
-                    <div id="tabPerguntas" class="tab-content">
-                        <div id="tabelaPerguntas"></div>
-                    </div>
-                    <div id="tabResumo" class="tab-content">
-                        <div id="tabelaResumo"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="toast" id="toast"></div>
-
-    <script>
-        // ==================== LOCAL STORAGE ====================
-        const STORAGE_KEY = 'hub_senai_diagnostico_inovacao_v1';
-        const dadosIniciais = [{"cooperativa": "Capal", "respondente": "Gustavo Sari", "scores": [4, 2, 2, 4, 4, 2, 4, 4, 1, 2, 2, 4, 6, 2, 2, 6, 2, 2, 2, 2, 2, 1, 2, 2], "media_geral": 2.75}, {"cooperativa": "Gustavo Sari; Felipe Mattos; Samuel Paes", "respondente": "Capal", "scores": [4, 4, 3, 8, 6, 3, 6, 4, 2, 3, 6, 4, 8, 6, 3, 6, 3, 4, 4, 2, 4, 4, 6, 6], "media_geral": 4.54}, {"cooperativa": "Sicredi Campos Gerais PR/SP", "respondente": "XXXXXXX", "scores": [4, 6, 3, 4, 6, 2, 4, 4, 1, 1, 4, 4, 4, 2, 3, 6, 2, 4, 2, 2, 2, 2, 4, 2], "media_geral": 3.25}];
-
-        let dados = [];
-
-        function carregarDados() {
-            try {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                if (saved) {
-                    dados = JSON.parse(saved);
-                    showToast('Dados carregados do navegador!');
-                } else {
-                    dados = JSON.parse(JSON.stringify(dadosIniciais));
-                    salvarDados();
-                }
-            } catch(e) {
-                console.error('Erro ao carregar dados:', e);
-                dados = JSON.parse(JSON.stringify(dadosIniciais));
-            }
-        }
-
-        function salvarDados() {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
-                const badge = document.getElementById('persistStatus');
-                badge.classList.remove('off');
-                badge.innerHTML = '<span>●</span> Dados salvos automaticamente (' + new Date().toLocaleTimeString() + ')';
-            } catch(e) {
-                console.error('Erro ao salvar:', e);
-                showToast('Erro ao salvar dados. O armazenamento pode estar cheio.', true);
-            }
-        }
-
-        function limparStorage() {
-            if(confirm('Deseja APAGAR TODOS os dados salvos no navegador? Esta ação não pode ser desfeita.')) {
-                localStorage.removeItem(STORAGE_KEY);
-                dados = [];
-                atualizarFiltros();
-                atualizarDashboard();
-                atualizarLista();
-                showToast('Todos os dados do navegador foram apagados');
-            }
-        }
-
-        function resetarDadosIniciais() {
-            if(confirm('Restaurar os dados originais do diagnóstico? Isso substituirá todos os dados atuais.')) {
-                dados = JSON.parse(JSON.stringify(dadosIniciais));
-                salvarDados();
-                atualizarFiltros();
-                atualizarDashboard();
-                atualizarLista();
-                showToast('Dados iniciais restaurados!');
-            }
-        }
-
-        function exportarJSON() {
-            const blob = new Blob([JSON.stringify(dados, null, 2)], {type: 'application/json'});
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'Diagnostico_Maturidade_Backup_' + new Date().toISOString().slice(0,10) + '.json';
-            link.click();
-            showToast('Backup JSON exportado!');
-        }
-
-        function importarJSON(input) {
-            const file = input.files[0];
-            if(!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    if(Array.isArray(imported) && imported.length > 0 && imported[0].cooperativa !== undefined) {
-                        dados = imported;
-                        salvarDados();
-                        atualizarFiltros();
-                        atualizarDashboard();
-                        atualizarLista();
-                        showToast(imported.length + ' respondentes importados com sucesso!');
-                    } else {
-                        showToast('Arquivo JSON inválido', true);
-                    }
-                } catch(err) {
-                    showToast('Erro ao ler arquivo: ' + err.message, true);
-                }
-            };
-            reader.readAsText(file);
-            input.value = '';
-        }
-
-        // ==================== DADOS E DIMENSÕES ====================
-        const dimensoes = [{"nome": "Estratégia", "perguntas": [0, 1, 2], "cor": "#2563eb"}, {"nome": "Liderança", "perguntas": [3, 4, 5], "cor": "#dc2626"}, {"nome": "Cultura", "perguntas": [6, 7, 8], "cor": "#16a34a"}, {"nome": "Pessoas", "perguntas": [9, 10, 11], "cor": "#9333ea"}, {"nome": "Estrutura", "perguntas": [12, 13, 14], "cor": "#ea580c"}, {"nome": "Processos", "perguntas": [15, 16, 17], "cor": "#0891b2"}, {"nome": "Recursos", "perguntas": [18, 19, 20], "cor": "#db2777"}, {"nome": "Relacionamento", "perguntas": [21, 22, 23], "cor": "#65a30d"}];
-        const maxPossivel = 6.66666666666667;
-        let chartInstance = null;
-
-        // ==================== UI ====================
-        function initScoreInputs() {
-            const grid = document.getElementById('scoresGrid');
-            grid.innerHTML = '';
-            for(let i=0; i<24; i++) {
-                const dim = dimensoes.find(d => d.perguntas.includes(i));
-                const div = document.createElement('div');
-                div.className = 'score-input';
-                div.innerHTML = `
-                    <label title="${dim.nome}">Q${i+1}</label>
-                    <input type="number" min="1" max="6" value="3" class="score-val" data-q="${i}" required>
-                `;
-                grid.appendChild(div);
-            }
-        }
-
-        function calcularMediasDimensao(scores) {
-            return dimensoes.map(dim => {
-                const vals = dim.perguntas.map(p => scores[p]);
-                return vals.reduce((a,b) => a+b, 0) / vals.length;
-            });
-        }
-
-        function getCooperativas() {
-            return [...new Set(dados.map(d => d.cooperativa))];
-        }
-
-        function atualizarFiltros() {
-            const select = document.getElementById('filtroCooperativa');
-            const atual = select.value;
-            select.innerHTML = '<option value="todas">Todas as Cooperativas</option>';
-            getCooperativas().forEach(coop => {
-                const count = dados.filter(d => d.cooperativa === coop).length;
-                const opt = document.createElement('option');
-                opt.value = coop;
-                opt.textContent = `${coop} (${count} resp.)`;
-                select.appendChild(opt);
-            });
-            select.value = atual;
-        }
-
-        function showToast(msg, error=false) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.className = 'toast show' + (error ? ' error' : '');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        // ==================== CRUD ====================
-        document.getElementById('formAdd').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const coop = document.getElementById('cooperativa').value.trim();
-            const resp = document.getElementById('respondente').value.trim();
-            const scores = [];
-            let valid = true;
-            document.querySelectorAll('.score-val').forEach((input, idx) => {
-                const val = parseInt(input.value);
-                if(val < 1 || val > 6 || isNaN(val)) {
-                    valid = false;
-                    input.style.borderColor = 'var(--danger)';
-                } else {
-                    input.style.borderColor = 'var(--border)';
-                    scores.push(val);
-                }
-            });
-            if(!valid) {
-                showToast('Todos os scores devem estar entre 1 e 6', true);
-                return;
-            }
-            const media = scores.reduce((a,b)=>a+b,0)/scores.length;
-            dados.push({cooperativa: coop, respondente: resp, scores: scores, media_geral: parseFloat(media.toFixed(2))});
-            salvarDados();
-            atualizarFiltros();
-            atualizarDashboard();
-            atualizarLista();
-            showToast('Respondente adicionado e salvo!');
-            this.reset();
-            initScoreInputs();
-        });
-
-        function removerRespondente(idx) {
-            if(confirm('Deseja remover este respondente?')) {
-                dados.splice(idx, 1);
-                salvarDados();
-                atualizarFiltros();
-                atualizarDashboard();
-                atualizarLista();
-                showToast('Respondente removido');
-            }
-        }
-
-        function atualizarLista() {
-            const container = document.getElementById('listaRespondentes');
-            if(dados.length === 0) {
-                container.innerHTML = '<div class="empty-state">Nenhum respondente cadastrado</div>';
-                return;
-            }
-            container.innerHTML = dados.map((d, i) => `
-                <div class="respondente-item">
-                    <div class="respondente-info">
-                        <strong>${d.cooperativa}</strong>
-                        <span>${d.respondente} — Média: ${d.media_geral}</span>
-                    </div>
-                    <button class="delete-btn" onclick="removerRespondente(${i})" title="Remover">
-                        ✕
-                    </button>
-                </div>
-            `).join('');
-        }
-
-        // ==================== DASHBOARD ====================
-        function atualizarStats() {
-            const filtro = document.getElementById('filtroCooperativa').value;
-            const filtered = filtro === 'todas' ? dados : dados.filter(d => d.cooperativa === filtro);
-
-            const container = document.getElementById('statsGrid');
-            if(filtered.length === 0) {
-                container.innerHTML = '<div class="card" style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-light)">Nenhum dado para exibir</div>';
-                return;
-            }
-
-            const medias = dimensoes.map(dim => {
-                const vals = filtered.flatMap(d => dim.perguntas.map(p => d.scores[p]));
-                return vals.reduce((a,b)=>a+b,0)/vals.length;
-            });
-            const mediaGeral = medias.reduce((a,b)=>a+b,0)/medias.length;
-            const melhorIdx = medias.indexOf(Math.max(...medias));
-            const piorIdx = medias.indexOf(Math.min(...medias));
-            const totalResp = filtered.length;
-            const totalCoops = new Set(filtered.map(d=>d.cooperativa)).size;
-
-            container.innerHTML = `
-                <div class="stat-card">
-                    <h3>Média Geral</h3>
-                    <div class="value">${mediaGeral.toFixed(2)}</div>
-                    <div class="sub">de ${maxPossivel.toFixed(2)} máximo</div>
-                </div>
-                <div class="stat-card" style="border-left-color:#16a34a">
-                    <h3>Melhor Dimensão</h3>
-                    <div class="value">${dimensoes[melhorIdx].nome}</div>
-                    <div class="sub">${medias[melhorIdx].toFixed(2)} média</div>
-                </div>
-                <div class="stat-card" style="border-left-color:#dc2626">
-                    <h3>Dimensão a Desenvolver</h3>
-                    <div class="value">${dimensoes[piorIdx].nome}</div>
-                    <div class="sub">${medias[piorIdx].toFixed(2)} média</div>
-                </div>
-                <div class="stat-card" style="border-left-color:#9333ea">
-                    <h3>Respondentes</h3>
-                    <div class="value">${totalResp}</div>
-                    <div class="sub">em ${totalCoops} cooperativa(s)</div>
-                </div>
-            `;
-        }
-
-        function atualizarGrafico() {
-            const filtro = document.getElementById('filtroCooperativa').value;
-            const mostrarRef = document.getElementById('mostrarReferencia').value === 'sim';
-            const tipo = document.getElementById('tipoGrafico').value;
-            const filtered = filtro === 'todas' ? dados : dados.filter(d => d.cooperativa === filtro);
-
-            const ctx = document.getElementById('chartPrincipal').getContext('2d');
-            if(chartInstance) chartInstance.destroy();
-
-            const labels = dimensoes.map(d => d.nome);
-            const datasets = [];
-
-            if(filtro === 'todas') {
-                const coops = [...new Set(filtered.map(d => d.cooperativa))];
-                const cores = ['#2563eb','#dc2626','#16a34a','#9333ea','#ea580c','#0891b2','#db2777','#65a30d'];
-                coops.forEach((coop, idx) => {
-                    const respCoop = filtered.filter(d => d.cooperativa === coop);
-                    const medias = dimensoes.map(dim => {
-                        const vals = respCoop.flatMap(d => dim.perguntas.map(p => d.scores[p]));
-                        return vals.reduce((a,b)=>a+b,0)/vals.length;
-                    });
-                    datasets.push({
-                        label: coop,
-                        data: medias,
-                        backgroundColor: (tipo==='radar') ? cores[idx % cores.length] + '20' : cores[idx % cores.length] + '80',
-                        borderColor: cores[idx % cores.length],
-                        borderWidth: 2,
-                        pointBackgroundColor: cores[idx % cores.length],
-                        pointRadius: 4
-                    });
-                });
-            } else {
-                filtered.forEach((d, idx) => {
-                    const medias = calcularMediasDimensao(d.scores);
-                    const cores = ['#2563eb','#16a34a','#dc2626','#9333ea'];
-                    datasets.push({
-                        label: d.respondente.length > 20 ? d.respondente.substring(0,20)+'...' : d.respondente,
-                        data: medias,
-                        backgroundColor: (tipo==='radar') ? cores[idx % cores.length] + '20' : cores[idx % cores.length] + '80',
-                        borderColor: cores[idx % cores.length],
-                        borderWidth: 2,
-                        pointBackgroundColor: cores[idx % cores.length],
-                        pointRadius: 4
-                    });
-                });
-            }
-
-            if(mostrarRef) {
-                datasets.push({
-                    label: 'Máx. Possível',
-                    data: dimensoes.map(() => maxPossivel),
-                    borderColor: '#94a3b8',
-                    borderWidth: 2,
-                    borderDash: [5,5],
-                    pointRadius: 0,
-                    backgroundColor: 'transparent',
-                    fill: false
-                });
-            }
-
-            const config = {
-                type: tipo,
-                data: { labels, datasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: tipo === 'radar' ? {
-                        r: {
-                            beginAtZero: true,
-                            max: 7,
-                            ticks: { stepSize: 1, font: {size:11} },
-                            pointLabels: { font: {size:12, weight:'600'}, color: '#1e293b' }
-                        }
-                    } : {
-                        y: { beginAtZero: true, max: 7, title: {display:true, text:'Média'} },
-                        x: { ticks: {font:{size:11,weight:'600'}} }
-                    },
-                    plugins: {
-                        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': ' + (context.parsed.y?.toFixed(2) || context.parsed.r?.toFixed(2));
-                                }
-                            }
-                        }
-                    }
-                }
-            };
-
-            chartInstance = new Chart(ctx, config);
-
-            const legend = document.getElementById('dimLegend');
-            legend.innerHTML = dimensoes.map((d,i) => `
-                <div class="dim-item">
-                    <div class="dim-color" style="background:${d.cor}"></div>
-                    <span>${d.nome} (Q${d.perguntas.map(p=>p+1).join(',Q')})</span>
-                </div>
-            `).join('');
-        }
-
-        function atualizarTabelaDimensoes() {
-            const filtro = document.getElementById('filtroCooperativa').value;
-            const filtered = filtro === 'todas' ? dados : dados.filter(d => d.cooperativa === filtro);
-
-            let html = '<table><thead><tr><th>Dimensão</th>';
-
-            if(filtro === 'todas') {
-                const coops = [...new Set(filtered.map(d => d.cooperativa))];
-                coops.forEach(c => html += `<th>${c}</th>`);
-                html += '<th>Média Geral</th><th>Máx. Possível</th><th>Status</th>';
-            } else {
-                filtered.forEach((d,i) => html += `<th>${d.respondente}</th>`);
-                html += '<th>Média</th><th>Máx. Possível</th><th>Status</th>';
-            }
-            html += '</tr></thead><tbody>';
-
-            dimensoes.forEach((dim, idx) => {
-                html += `<tr><td class="dimensao-header">${dim.nome}</td>`;
-                let medias = [];
-
-                if(filtro === 'todas') {
-                    const coops = [...new Set(filtered.map(d => d.cooperativa))];
-                    coops.forEach(coop => {
-                        const respCoop = filtered.filter(d => d.cooperativa === coop);
-                        const vals = respCoop.flatMap(d => dim.perguntas.map(p => d.scores[p]));
-                        const m = vals.reduce((a,b)=>a+b,0)/vals.length;
-                        medias.push(m);
-                        html += `<td>${m.toFixed(2)}</td>`;
-                    });
-                } else {
-                    filtered.forEach(d => {
-                        const vals = dim.perguntas.map(p => d.scores[p]);
-                        const m = vals.reduce((a,b)=>a+b,0)/vals.length;
-                        medias.push(m);
-                        html += `<td>${m.toFixed(2)}</td>`;
-                    });
-                }
-
-                const mediaGeralDim = medias.reduce((a,b)=>a+b,0)/medias.length;
-                html += `<td><strong>${mediaGeralDim.toFixed(2)}</strong></td>`;
-                html += `<td>${maxPossivel.toFixed(2)}</td>`;
-
-                let status, badgeClass;
-                if(mediaGeralDim < 2.5) { status = 'Inicial'; badgeClass = 'badge-red'; }
-                else if(mediaGeralDim < 4.5) { status = 'Em Desenv.'; badgeClass = 'badge-yellow'; }
-                else if(mediaGeralDim < 5.5) { status = 'Intermediário'; badgeClass = 'badge-blue'; }
-                else { status = 'Avançado'; badgeClass = 'badge-green'; }
-
-                html += `<td><span class="badge ${badgeClass}">${status}</span></td></tr>`;
-            });
-
-            html += `<tr style="background:#f1f5f9;font-weight:700"><td>MÉDIA GERAL</td>`;
-            if(filtro === 'todas') {
-                const coops = [...new Set(filtered.map(d => d.cooperativa))];
-                coops.forEach(coop => {
-                    const respCoop = filtered.filter(d => d.cooperativa === coop);
-                    const allScores = respCoop.flatMap(d => d.scores);
-                    const m = allScores.reduce((a,b)=>a+b,0)/allScores.length;
-                    html += `<td>${m.toFixed(2)}</td>`;
-                });
-            } else {
-                filtered.forEach(d => html += `<td>${d.media_geral.toFixed(2)}</td>`);
-            }
-            const allScores = filtered.flatMap(d => d.scores);
-            const mediaTotal = allScores.length ? allScores.reduce((a,b)=>a+b,0)/allScores.length : 0;
-            html += `<td colspan="3"><strong>${mediaTotal.toFixed(2)}</strong></td></tr>`;
-            html += '</tbody></table>';
-
-            document.getElementById('tabelaDimensoes').innerHTML = html;
-        }
-
-        function atualizarTabelaPerguntas() {
-            const filtro = document.getElementById('filtroCooperativa').value;
-            const filtered = filtro === 'todas' ? dados : dados.filter(d => d.cooperativa === filtro);
-
-            let html = '<div style="overflow-x:auto"><table><thead><tr><th>Cooperativa</th><th>Respondente</th>';
-            for(let i=1; i<=24; i++) html += `<th>Q${i}</th>`;
-            html += '<th>Média</th></tr></thead><tbody>';
-
-            filtered.forEach(d => {
-                html += `<tr><td><strong>${d.cooperativa}</strong></td><td>${d.respondente}</td>`;
-                d.scores.forEach(s => html += `<td>${s}</td>`);
-                html += `<td><strong>${d.media_geral.toFixed(2)}</strong></td></tr>`;
-            });
-
-            if(filtered.length > 0) {
-                html += `<tr style="background:#f1f5f9;font-weight:600"><td colspan="2">MÉDIA GERAL</td>`;
-                for(let i=0; i<24; i++) {
-                    const vals = filtered.map(d => d.scores[i]);
-                    const m = vals.reduce((a,b)=>a+b,0)/vals.length;
-                    html += `<td>${m.toFixed(2)}</td>`;
-                }
-                const all = filtered.flatMap(d => d.scores);
-                html += `<td>${(all.reduce((a,b)=>a+b,0)/all.length).toFixed(2)}</td></tr>`;
-            }
-            html += '</tbody></table></div>';
-            document.getElementById('tabelaPerguntas').innerHTML = html;
-        }
-
-        function atualizarResumo() {
-            const filtro = document.getElementById('filtroCooperativa').value;
-            const filtered = filtro === 'todas' ? dados : dados.filter(d => d.cooperativa === filtro);
-
-            if(filtered.length === 0) {
-                document.getElementById('tabelaResumo').innerHTML = '<div class="empty-state">Nenhum dado disponível</div>';
-                return;
-            }
-
-            const medias = dimensoes.map(dim => {
-                const vals = filtered.flatMap(d => dim.perguntas.map(p => d.scores[p]));
-                return vals.reduce((a,b)=>a+b,0)/vals.length;
-            });
-            const mediaGeral = medias.reduce((a,b)=>a+b,0)/medias.length;
-            const melhorIdx = medias.indexOf(Math.max(...medias));
-            const piorIdx = medias.indexOf(Math.min(...medias));
-
-            let html = '<div style="display:grid;gap:1rem">';
-            html += `
-                <div style="background:linear-gradient(135deg,#dbeafe,#eff6ff);padding:1.5rem;border-radius:10px;border-left:4px solid #2563eb">
-                    <h3 style="color:#1e40af;margin-bottom:0.5rem;font-size:1.1rem">📊 Visão Geral</h3>
-                    <p style="color:#334155">A cooperativa possui <strong>${filtered.length}</strong> respondente(s) com média geral de <strong>${mediaGeral.toFixed(2)}</strong> (máximo: ${maxPossivel.toFixed(2)}).</p>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-                    <div style="background:linear-gradient(135deg,#dcfce7,#f0fdf4);padding:1.25rem;border-radius:10px;border-left:4px solid #16a34a">
-                        <h4 style="color:#166534;margin-bottom:0.5rem">🚀 Pontos Fortes</h4>
-                        <p style="font-size:0.9rem;color:#334155"><strong>${dimensoes[melhorIdx].nome}</strong> é a dimensão mais madura com média de <strong>${medias[melhorIdx].toFixed(2)}</strong>.</p>
-                    </div>
-                    <div style="background:linear-gradient(135deg,#fee2e2,#fef2f2);padding:1.25rem;border-radius:10px;border-left:4px solid #dc2626">
-                        <h4 style="color:#991b1b;margin-bottom:0.5rem">⚠️ Oportunidades</h4>
-                        <p style="font-size:0.9rem;color:#334155"><strong>${dimensoes[piorIdx].nome}</strong> precisa de atenção com média de <strong>${medias[piorIdx].toFixed(2)}</strong>.</p>
-                    </div>
-                </div>
-                <div style="background:#f8fafc;padding:1.25rem;border-radius:10px">
-                    <h4 style="color:#1e40af;margin-bottom:0.75rem">📋 Status por Dimensão</h4>
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0.75rem">
-            `;
-
-            dimensoes.forEach((dim, i) => {
-                let status, color;
-                if(medias[i] < 2.5) { status = 'Inicial'; color = '#dc2626'; }
-                else if(medias[i] < 4.5) { status = 'Em Desenv.'; color = '#f59e0b'; }
-                else if(medias[i] < 5.5) { status = 'Intermediário'; color = '#2563eb'; }
-                else { status = 'Avançado'; color = '#16a34a'; }
-
-                const pct = (medias[i]/maxPossivel)*100;
-                html += `
-                    <div style="background:white;padding:0.75rem;border-radius:8px;border:1px solid #e2e8f0">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
-                            <span style="font-weight:600;font-size:0.9rem">${dim.nome}</span>
-                            <span style="font-size:0.75rem;color:${color};font-weight:600">${status}</span>
-                        </div>
-                        <div style="background:#e2e8f0;height:6px;border-radius:3px;overflow:hidden">
-                            <div style="width:${pct}%;background:${color};height:100%;transition:width 0.5s"></div>
-                        </div>
-                        <div style="text-align:right;font-size:0.75rem;color:#64748b;margin-top:0.25rem">${medias[i].toFixed(2)} / ${maxPossivel.toFixed(2)}</div>
-                    </div>
-                `;
-            });
-
-            html += '</div></div></div>';
-            document.getElementById('tabelaResumo').innerHTML = html;
-        }
-
-        function atualizarDashboard() {
-            atualizarStats();
-            atualizarGrafico();
-            atualizarTabelaDimensoes();
-            atualizarTabelaPerguntas();
-            atualizarResumo();
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
-            document.getElementById(tabId).classList.add('active');
-        }
-
-        // ==================== EXPORTAÇÃO ====================
-        function exportarExcel() {
-            const wb = XLSX.utils.book_new();
-
-            const scoresData = dados.map(d => ({
-                Cooperativa: d.cooperativa,
-                Respondente: d.respondente,
-                ...d.scores.reduce((acc,s,i) => { acc['Q'+(i+1)] = s; return acc; }, {}),
-                'Média Geral': d.media_geral
-            }));
-            const wsScores = XLSX.utils.json_to_sheet(scoresData);
-            XLSX.utils.book_append_sheet(wb, wsScores, "Scores por Pergunta");
-
-            const coopNames = [...new Set(dados.map(d => d.cooperativa))];
-            const dimData = dimensoes.map(dim => {
-                const row = { Dimensão: dim.nome };
-                coopNames.forEach(coop => {
-                    const respCoop = dados.filter(d => d.cooperativa === coop);
-                    const vals = respCoop.flatMap(d => dim.perguntas.map(p => d.scores[p]));
-                    row[coop] = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2) : 0;
-                });
-                row['Máx. Possível'] = maxPossivel.toFixed(2);
-                return row;
-            });
-            const wsDim = XLSX.utils.json_to_sheet(dimData);
-            XLSX.utils.book_append_sheet(wb, wsDim, "Análise por Dimensão");
-
-            XLSX.writeFile(wb, "Diagnostico_Maturidade_Atualizado.xlsx");
-            showToast("Arquivo Excel exportado!");
-        }
-
-        function exportarCSV() {
-            let csv = "Cooperativa,Respondente,";
-            for(let i=1;i<=24;i++) csv += "Q"+i+",";
-            csv += "Média Geral\n";
-            dados.forEach(d => {
-                csv += `"${d.cooperativa}","${d.respondente}",${d.scores.join(',')},${d.media_geral}\n`;
-            });
-            const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = "Diagnostico_Maturidade_Atualizado.csv";
-            link.click();
-            showToast("Arquivo CSV exportado!");
-        }
-
-        // ==================== INICIALIZAÇÃO ====================
-        initScoreInputs();
-        carregarDados();
-        atualizarFiltros();
-        atualizarLista();
-        atualizarDashboard();
-    </script>
+<div class="header">
+<h1>📊 Diagnóstico de Maturidade em Inovação</h1>
+<p>Hub SENAI 2026 — Modo Diagnóstico</p>
+</div>
+<div class="container">
+<div class="grid">
+<div class="sidebar">
+<div class="card">
+<h2>🔗 Configuração</h2>
+<div class="form-group">
+<label>URL da API (Google Apps Script)</label>
+<input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec" value="">
+</div>
+<button class="btn btn-primary" onclick="salvarUrl()">💾 Salvar URL</button>
+<button class="btn btn-success" onclick="testarConexao()" style="margin-top:.5rem">🧪 Testar Conexão</button>
+<div id="conexaoStatus" class="status-offline" style="margin-top:1rem"><span>●</span> Desconectado</div>
+<div class="debug-box" id="debugLog">
+<div class="info">=== LOG DE DIAGNÓSTICO ===</div>
+<div class="info">Aguardando configuração...</div>
+</div>
+</div>
+<div class="card">
+<h2>➕ Adicionar Respondente</h2>
+<form id="formAdd">
+<div class="form-group"><label>Cooperativa</label><input type="text" id="cooperativa" placeholder="Ex: Capal" required></div>
+<div class="form-group"><label>Respondente(s)</label><input type="text" id="respondente" placeholder="Ex: João Silva" required></div>
+<div class="form-group"><label>Scores (1-6)</label><div class="scores-grid" id="scoresGrid"></div></div>
+<button type="submit" class="btn btn-primary" id="btnSalvar"><span>💾</span> Salvar</button>
+</form>
+</div>
+<div class="card">
+<h2>👥 Respondentes <span id="contadorResp">(0)</span></h2>
+<div id="listaRespondentes"></div>
+<div class="actions" style="display:flex;gap:.5rem;margin-top:1rem">
+<button class="btn btn-success btn-sm" onclick="exportarExcel()">📥 Excel</button>
+<button class="btn btn-secondary btn-sm" onclick="exportarCSV()">📄 CSV</button>
+</div>
+<button class="btn btn-secondary btn-sm" style="margin-top:.5rem;width:100%" onclick="carregarDados()">🔄 Sincronizar</button>
+</div>
+</div>
+<div class="main-content">
+<div class="card">
+<h2>🔍 Filtros</h2>
+<div style="display:flex;gap:1rem;flex-wrap:wrap">
+<div style="flex:1;min-width:200px"><label style="font-size:.875rem;font-weight:500;margin-bottom:.375rem;display:block">Filtrar por Cooperativa</label><select id="filtroCooperativa" onchange="atualizarDashboard()"><option value="todas">Todas</option></select></div>
+<div style="flex:1;min-width:200px"><label style="font-size:.875rem;font-weight:500;margin-bottom:.375rem;display:block">Comparar com Referência</label><select id="mostrarReferencia" onchange="atualizarDashboard()"><option value="sim">Sim</option><option value="nao">Não</option></select></div>
+<div style="flex:1;min-width:200px"><label style="font-size:.875rem;font-weight:500;margin-bottom:.375rem;display:block">Tipo de Gráfico</label><select id="tipoGrafico" onchange="atualizarDashboard()"><option value="radar">Radar</option><option value="bar">Barras</option></select></div>
+</div>
+</div>
+<div class="stats-grid" id="statsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem"></div>
+<div class="card">
+<h2>📈 Gráfico Comparativo</h2>
+<div class="chart-container"><canvas id="chartPrincipal"></canvas></div>
+</div>
+<div class="card">
+<div class="tabs">
+<button class="tab active" onclick="switchTab('tabDimensoes')">Médias por Dimensão</button>
+<button class="tab" onclick="switchTab('tabPerguntas')">Scores por Pergunta</button>
+<button class="tab" onclick="switchTab('tabResumo')">Resumo Executivo</button>
+</div>
+<div id="tabDimensoes" class="tab-content active" style="display:block"><div id="tabelaDimensoes"></div></div>
+<div id="tabPerguntas" class="tab-content" style="display:none"><div id="tabelaPerguntas"></div></div>
+<div id="tabResumo" class="tab-content" style="display:none"><div id="tabelaResumo"></div></div>
+</div>
+</div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const API_URL_KEY='hub_senai_api_url_v2';
+let API_URL=localStorage.getItem(API_URL_KEY)||'';
+if(API_URL)document.getElementById('apiUrl').value=API_URL;
+
+function log(msg,type='info'){
+  const box=document.getElementById('debugLog');
+  const div=document.createElement('div');
+  div.className=type;
+  const time=new Date().toLocaleTimeString();
+  div.textContent='['+time+'] '+msg;
+  box.appendChild(div);
+  box.scrollTop=box.scrollHeight;
+}
+
+function salvarUrl(){
+  const url=document.getElementById('apiUrl').value.trim();
+  if(!url){log('URL vazia!','err');return}
+  if(!url.includes('script.google.com')){log('URL não parece ser do Google Apps Script','err');return}
+  API_URL=url;
+  localStorage.setItem(API_URL_KEY,url);
+  log('URL salva: '+url,'ok');
+  setStatus(null,'URL salva');
+}
+
+function getApiUrl(){return API_URL}
+
+function setStatus(ok,msg){
+  const el=document.getElementById('conexaoStatus');
+  if(ok===null){el.className='status-warn';el.innerHTML='<span class="loading"></span> '+msg}
+  else if(ok){el.className='status-online';el.innerHTML='<span>●</span> '+msg}
+  else{el.className='status-offline';el.innerHTML='<span>●</span> '+msg}
+}
+
+async function testarConexao(){
+  if(!getApiUrl()){log('Configure a URL primeiro!','err');showToast('Cole a URL primeiro',true);return}
+  setStatus(null,'Testando...');
+  log('Iniciando teste para: '+getApiUrl(),'info');
+
+  try{
+    const testUrl=getApiUrl()+'?action=listar&_='+Date.now();
+    log('Fazendo GET: '+testUrl,'info');
+
+    const resp=await fetch(testUrl,{method:'GET',mode:'cors'});
+    log('Status HTTP: '+resp.status,'info');
+
+    const text=await resp.text();
+    log('Resposta bruta: '+text.substring(0,200),'info');
+
+    try{
+      const data=JSON.parse(text);
+      if(data.success){
+        log('✅ CONEXÃO OK! Registros: '+(data.data?data.data.length:0),'ok');
+        setStatus(true,'Conectado ('+(data.data?data.data.length:0)+' regs)');
+        showToast('Conexão OK!');
+      }else{
+        log('❌ API retornou erro: '+data.error,'err');
+        setStatus(false,'Erro: '+data.error);
+      }
+    }catch(e){
+      log('❌ Resposta não é JSON válido: '+e.message,'err');
+      setStatus(false,'Resposta inválida');
+    }
+  }catch(e){
+    log('❌ ERRO DE FETCH: '+e.message,'err');
+    log('Tipo do erro: '+e.name,'err');
+    if(e.message.includes('Failed to fetch')){
+      log('→ CORS bloqueado ou URL inacessível','err');
+      log('→ Tente abrir a URL diretamente no navegador','info');
+    }
+    if(e.message.includes('NetworkError')){
+      log('→ Erro de rede - verifique conexão','err');
+    }
+    setStatus(false,'Falha na conexão');
+  }
+}
+
+let dados=[];
+const dimensoes=[{nome:"Estratégia",perguntas:[0,1,2],cor:"#2563eb"},{nome:"Liderança",perguntas:[3,4,5],cor:"#dc2626"},{nome:"Cultura",perguntas:[6,7,8],cor:"#16a34a"},{nome:"Pessoas",perguntas:[9,10,11],cor:"#9333ea"},{nome:"Estrutura",perguntas:[12,13,14],cor:"#ea580c"},{nome:"Processos",perguntas:[15,16,17],cor:"#0891b2"},{nome:"Recursos",perguntas:[18,19,20],cor:"#db2777"},{nome:"Relacionamento",perguntas:[21,22,23],cor:"#65a30d"}];
+const maxPossivel=6.66666666666667;
+let chartInstance=null;
+
+async function carregarDados(){
+  if(!getApiUrl()){log('URL não configurada','err');setStatus(false,'Sem URL');return}
+  setStatus(null,'Sincronizando...');
+  log('Sincronizando dados...','info');
+  try{
+    const resp=await fetch(getApiUrl()+'?action=listar&_='+Date.now());
+    const text=await resp.text();
+    const result=JSON.parse(text);
+    if(result.success){
+      dados=result.data||[];
+      log('Dados carregados: '+dados.length+' registros','ok');
+      atualizarFiltros();atualizarLista();atualizarDashboard();
+      setStatus(true,dados.length+' respondente(s)');
+    }else{
+      log('Erro ao carregar: '+result.error,'err');
+      setStatus(false,'Erro API');
+    }
+  }catch(e){
+    log('Erro ao sincronizar: '+e.message,'err');
+    setStatus(false,'Falha');
+  }
+}
+
+function initScoreInputs(){
+  const grid=document.getElementById('scoresGrid');
+  grid.innerHTML='';
+  for(let i=0;i<24;i++){
+    const dim=dimensoes.find(d=>d.perguntas.includes(i));
+    const div=document.createElement('div');
+    div.className='score-input';
+    div.innerHTML='<label title="'+dim.nome+'">Q'+(i+1)+'</label><input type="number" min="1" max="6" value="3" class="score-val" required>';
+    grid.appendChild(div);
+  }
+}
+
+function atualizarFiltros(){
+  const select=document.getElementById('filtroCooperativa');
+  const atual=select.value;
+  select.innerHTML='<option value="todas">Todas</option>';
+  [...new Set(dados.map(d=>d.cooperativa))].forEach(coop=>{
+    const opt=document.createElement('option');
+    opt.value=coop;
+    opt.textContent=coop;
+    select.appendChild(opt);
+  });
+  select.value=atual;
+}
+
+function showToast(msg,error=false){
+  const toast=document.getElementById('toast');
+  toast.textContent=msg;
+  toast.className='toast show'+(error?' error':'');
+  setTimeout(()=>toast.classList.remove('show'),3000);
+}
+
+document.getElementById('formAdd').addEventListener('submit',async function(e){
+  e.preventDefault();
+  if(!getApiUrl()){showToast('Configure a URL!',true);return}
+  const coop=document.getElementById('cooperativa').value.trim();
+  const resp=document.getElementById('respondente').value.trim();
+  const scores=[];
+  document.querySelectorAll('.score-val').forEach(input=>{
+    const val=parseInt(input.value);
+    if(val>=1&&val<=6)scores.push(val);
+  });
+  if(scores.length!==24){showToast('Preencha todos os 24 scores (1-6)',true);return}
+
+  const btn=document.getElementById('btnSalvar');
+  btn.disabled=true;
+  try{
+    log('Enviando dados...','info');
+    const r=await fetch(getApiUrl(),{method:'POST',body:JSON.stringify({action:'adicionar',data:{cooperativa:coop,respondente:resp,scores:scores}})});
+    const text=await r.text();
+    log('Resposta POST: '+text,'info');
+    const result=JSON.parse(text);
+    if(result.success){showToast('Salvo!');this.reset();initScoreInputs();await carregarDados()}
+    else{showToast('Erro: '+result.error,true)}
+  }catch(err){log('Erro POST: '+err.message,'err');showToast('Erro: '+err.message,true)}
+  finally{btn.disabled=false;btn.innerHTML='<span>💾</span> Salvar'}
+});
+
+async function removerRespondente(id){
+  if(!confirm('Remover?'))return;
+  try{await fetch(getApiUrl(),{method:'POST',body:JSON.stringify({action:'remover',id:id})});await carregarDados()}
+  catch(e){showToast('Erro',true)}
+}
+
+function atualizarLista(){
+  const container=document.getElementById('listaRespondentes');
+  document.getElementById('contadorResp').textContent='('+dados.length+')';
+  if(dados.length===0){container.innerHTML='<div style="text-align:center;padding:2rem;color:#64748b">Nenhum respondente</div>';return}
+  container.innerHTML=dados.map(d=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem;background:#f8fafc;border-radius:8px;margin-bottom:.5rem;border:1px solid #e2e8f0"><div><strong>'+d.cooperativa+'</strong><br><span style="font-size:.75rem;color:#64748b">'+d.respondente+' — Média: '+d.media_geral+'</span></div><button onclick="removerRespondente(''+d.id+'')" style="background:none;border:none;color:#dc2626;cursor:pointer">✕</button></div>').join('');
+}
+
+function atualizarStats(){
+  const filtro=document.getElementById('filtroCooperativa').value;
+  const filtered=filtro==='todas'?dados:dados.filter(d=>d.cooperativa===filtro);
+  const container=document.getElementById('statsGrid');
+  if(filtered.length===0){container.innerHTML='<div class="card" style="grid-column:1/-1;text-align:center;padding:2rem">Nenhum dado</div>';return}
+  const medias=dimensoes.map(dim=>{const vals=filtered.flatMap(d=>dim.perguntas.map(p=>d.scores[p]));return vals.reduce((a,b)=>a+b,0)/vals.length});
+  const mediaGeral=medias.reduce((a,b)=>a+b,0)/medias.length;
+  const melhorIdx=medias.indexOf(Math.max(...medias));
+  const piorIdx=medias.indexOf(Math.min(...medias));
+  container.innerHTML='<div class="card" style="border-left:4px solid #3b82f6"><h3 style="font-size:.875rem;color:#64748b;margin-bottom:.5rem">Média Geral</h3><div style="font-size:1.5rem;font-weight:700;color:#1e40af">'+mediaGeral.toFixed(2)+'</div></div><div class="card" style="border-left:4px solid #16a34a"><h3 style="font-size:.875rem;color:#64748b;margin-bottom:.5rem">Melhor</h3><div style="font-size:1.5rem;font-weight:700;color:#1e40af">'+dimensoes[melhorIdx].nome+'</div></div><div class="card" style="border-left:4px solid #dc2626"><h3 style="font-size:.875rem;color:#64748b;margin-bottom:.5rem">Desenvolver</h3><div style="font-size:1.5rem;font-weight:700;color:#1e40af">'+dimensoes[piorIdx].nome+'</div></div><div class="card" style="border-left:4px solid #9333ea"><h3 style="font-size:.875rem;color:#64748b;margin-bottom:.5rem">Total</h3><div style="font-size:1.5rem;font-weight:700;color:#1e40af">'+filtered.length+'</div></div>';
+}
+
+function atualizarGrafico(){
+  const filtro=document.getElementById('filtroCooperativa').value;
+  const mostrarRef=document.getElementById('mostrarReferencia').value==='sim';
+  const tipo=document.getElementById('tipoGrafico').value;
+  const filtered=filtro==='todas'?dados:dados.filter(d=>d.cooperativa===filtro);
+  const ctx=document.getElementById('chartPrincipal').getContext('2d');
+  if(chartInstance)chartInstance.destroy();
+  const labels=dimensoes.map(d=>d.nome);
+  const datasets=[];
+  if(filtro==='todas'){
+    const coops=[...new Set(filtered.map(d=>d.cooperativa))];
+    const cores=['#2563eb','#dc2626','#16a34a','#9333ea','#ea580c','#0891b2','#db2777','#65a30d'];
+    coops.forEach((coop,idx)=>{
+      const respCoop=filtered.filter(d=>d.cooperativa===coop);
+      const medias=dimensoes.map(dim=>{const vals=respCoop.flatMap(d=>dim.perguntas.map(p=>d.scores[p]));return vals.reduce((a,b)=>a+b,0)/vals.length});
+      datasets.push({label:coop,data:medias,backgroundColor:(tipo==='radar')?cores[idx%cores.length]+'20':cores[idx%cores.length]+'80',borderColor:cores[idx%cores.length],borderWidth:2,pointBackgroundColor:cores[idx%cores.length],pointRadius:4});
+    });
+  }else{
+    filtered.forEach((d,idx)=>{const medias=calcularMediasDimensao(d.scores);const cores=['#2563eb','#16a34a','#dc2626','#9333ea'];datasets.push({label:d.respondente.length>20?d.respondente.substring(0,20)+'...':d.respondente,data:medias,backgroundColor:(tipo==='radar')?cores[idx%cores.length]+'20':cores[idx%cores.length]+'80',borderColor:cores[idx%cores.length],borderWidth:2,pointBackgroundColor:cores[idx%cores.length],pointRadius:4})});
+  }
+  if(mostrarRef){datasets.push({label:'Máx. Possível',data:dimensoes.map(()=>maxPossivel),borderColor:'#94a3b8',borderWidth:2,borderDash:[5,5],pointRadius:0,backgroundColor:'transparent',fill:false})}
+  chartInstance=new Chart(ctx,{type:tipo,data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,scales:tipo==='radar'?{r:{beginAtZero:true,max:7,ticks:{stepSize:1,font:{size:11}},pointLabels:{font:{size:12,weight:'600'},color:'#1e293b'}}}:{y:{beginAtZero:true,max:7,title:{display:true,text:'Média'}},x:{ticks:{font:{size:11,weight:'600'}}}},plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:20}},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+(c.parsed.y?.toFixed(2)||c.parsed.r?.toFixed(2))}}}}}});
+}
+
+function calcularMediasDimensao(scores){return dimensoes.map(dim=>{const vals=dim.perguntas.map(p=>scores[p]);return vals.reduce((a,b)=>a+b,0)/vals.length})}
+
+function atualizarTabelaDimensoes(){
+  const filtro=document.getElementById('filtroCooperativa').value;
+  const filtered=filtro==='todas'?dados:dados.filter(d=>d.cooperativa===filtro);
+  let html='<table><thead><tr><th>Dimensão</th>'+(filtro==='todas'?[...new Set(filtered.map(d=>d.cooperativa))].map(c=>'<th>'+c+'</th>').join(''):filtered.map(d=>'<th>'+d.respondente+'</th>').join(''))+'<th>Média</th><th>Máx</th><th>Status</th></tr></thead><tbody>';
+  dimensoes.forEach((dim,idx)=>{
+    html+='<tr><td style="font-weight:600;color:#1e40af;background:#f8fafc">'+dim.nome+'</td>';
+    let medias=[];
+    if(filtro==='todas'){[...new Set(filtered.map(d=>d.cooperativa))].forEach(coop=>{const respCoop=filtered.filter(d=>d.cooperativa===coop);const vals=respCoop.flatMap(d=>dim.perguntas.map(p=>d.scores[p]));const m=vals.reduce((a,b)=>a+b,0)/vals.length;medias.push(m);html+='<td>'+m.toFixed(2)+'</td>'})}
+    else{filtered.forEach(d=>{const vals=dim.perguntas.map(p=>d.scores[p]);const m=vals.reduce((a,b)=>a+b,0)/vals.length;medias.push(m);html+='<td>'+m.toFixed(2)+'</td>'})}
+    const mediaGeralDim=medias.reduce((a,b)=>a+b,0)/medias.length;
+    html+='<td><strong>'+mediaGeralDim.toFixed(2)+'</strong></td><td>'+maxPossivel.toFixed(2)+'</td>';
+    let status,badgeClass;if(mediaGeralDim<2.5){status='Inicial';badgeClass='badge-red'}else if(mediaGeralDim<4.5){status='Em Desenv.';badgeClass='badge-yellow'}else if(mediaGeralDim<5.5){status='Intermediário';badgeClass='badge-blue'}else{status='Avançado';badgeClass='badge-green'}
+    html+='<td><span class="badge '+badgeClass+'">'+status+'</span></td></tr>';
+  });
+  html+='</tbody></table>';
+  document.getElementById('tabelaDimensoes').innerHTML=html;
+}
+
+function atualizarTabelaPerguntas(){
+  const filtro=document.getElementById('filtroCooperativa').value;
+  const filtered=filtro==='todas'?dados:dados.filter(d=>d.cooperativa===filtro);
+  let html='<div style="overflow-x:auto"><table><thead><tr><th>Cooperativa</th><th>Respondente</th>';for(let i=1;i<=24;i++)html+='<th>Q'+i+'</th>';html+='<th>Média</th></tr></thead><tbody>';
+  filtered.forEach(d=>{html+='<tr><td><strong>'+d.cooperativa+'</strong></td><td>'+d.respondente+'</td>';d.scores.forEach(s=>html+='<td>'+s+'</td>');html+='<td><strong>'+d.media_geral.toFixed(2)+'</strong></td></tr>'});
+  html+='</tbody></table></div>';
+  document.getElementById('tabelaPerguntas').innerHTML=html;
+}
+
+function atualizarResumo(){
+  const filtro=document.getElementById('filtroCooperativa').value;
+  const filtered=filtro==='todas'?dados:dados.filter(d=>d.cooperativa===filtro);
+  if(filtered.length===0){document.getElementById('tabelaResumo').innerHTML='<div style="text-align:center;padding:2rem;color:#64748b">Nenhum dado</div>';return}
+  const medias=dimensoes.map(dim=>{const vals=filtered.flatMap(d=>dim.perguntas.map(p=>d.scores[p]));return vals.reduce((a,b)=>a+b,0)/vals.length});
+  const mediaGeral=medias.reduce((a,b)=>a+b,0)/medias.length;
+  const melhorIdx=medias.indexOf(Math.max(...medias));
+  const piorIdx=medias.indexOf(Math.min(...medias));
+  let html='<div style="display:grid;gap:1rem">';
+  html+='<div style="background:linear-gradient(135deg,#dbeafe,#eff6ff);padding:1.5rem;border-radius:10px;border-left:4px solid #2563eb"><h3 style="color:#1e40af;margin-bottom:.5rem">📊 Visão Geral</h3><p><strong>'+filtered.length+'</strong> respondente(s) — Média: <strong>'+mediaGeral.toFixed(2)+'</strong></p></div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem"><div style="background:#dcfce7;padding:1.25rem;border-radius:10px;border-left:4px solid #16a34a"><h4 style="color:#166534">🚀 '+dimensoes[melhorIdx].nome+'</h4><p>'+medias[melhorIdx].toFixed(2)+'</p></div><div style="background:#fee2e2;padding:1.25rem;border-radius:10px;border-left:4px solid #dc2626"><h4 style="color:#991b1b">⚠️ '+dimensoes[piorIdx].nome+'</h4><p>'+medias[piorIdx].toFixed(2)+'</p></div></div>';
+  html+='<div style="background:#f8fafc;padding:1.25rem;border-radius:10px"><h4 style="color:#1e40af;margin-bottom:.75rem">Status por Dimensão</h4><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.75rem">';
+  dimensoes.forEach((dim,i)=>{let status,color;if(medias[i]<2.5){status='Inicial';color='#dc2626'}else if(medias[i]<4.5){status='Em Desenv.';color='#f59e0b'}else if(medias[i]<5.5){status='Intermediário';color='#2563eb'}else{status='Avançado';color='#16a34a'}const pct=(medias[i]/maxPossivel)*100;html+='<div style="background:#fff;padding:.75rem;border-radius:8px;border:1px solid #e2e8f0"><div style="display:flex;justify-content:space-between;margin-bottom:.5rem"><span style="font-weight:600">'+dim.nome+'</span><span style="font-size:.75rem;color:'+color+';font-weight:600">'+status+'</span></div><div style="background:#e2e8f0;height:6px;border-radius:3px;overflow:hidden"><div style="width:'+pct+'%;background:'+color+';height:100%"></div></div><div style="text-align:right;font-size:.75rem;color:#64748b;margin-top:.25rem">'+medias[i].toFixed(2)+' / '+maxPossivel.toFixed(2)+'</div></div>'});
+  html+='</div></div></div>';
+  document.getElementById('tabelaResumo').innerHTML=html;
+}
+
+function atualizarDashboard(){atualizarStats();atualizarGrafico();atualizarTabelaDimensoes();atualizarTabelaPerguntas();atualizarResumo()}
+function switchTab(tabId){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none');event.target.classList.add('active');document.getElementById(tabId).style.display='block'}
+
+function exportarExcel(){const wb=XLSX.utils.book_new();const scoresData=dados.map(d=>({Cooperativa:d.cooperativa,Respondente:d.respondente,...d.scores.reduce((acc,s,i)=>{acc['Q'+(i+1)]=s;return acc},{}),'Média Geral':d.media_geral}));XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(scoresData),"Scores");XLSX.writeFile(wb,"Diagnostico.xlsx");showToast("Excel exportado!")}
+function exportarCSV(){let csv="Cooperativa,Respondente,";for(let i=1;i<=24;i++)csv+="Q"+i+",";csv+="Média Geral\n";dados.forEach(d=>{csv+='"'+d.cooperativa+'","'+d.respondente+'",'+d.scores.join(',')+','+d.media_geral+"\n"});const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download="Diagnostico.csv";link.click();showToast("CSV exportado!")}
+
+initScoreInputs();
+if(getApiUrl()){log('URL carregada do cache: '+getApiUrl(),'info');setStatus(null,'URL carregada');}
+</script>
 </body>
 </html>
