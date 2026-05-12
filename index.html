@@ -3,269 +3,281 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Diagnóstico — Teste de Conexão</title>
+<title>Dashboard Diagnóstico — Hub SENAI</title>
 <style>
-body{font-family:Arial,sans-serif;max-width:900px;margin:0 auto;padding:20px;background:#f5f5f5}
-.box{background:#fff;border:1px solid #ddd;border-radius:8px;padding:20px;margin-bottom:15px}
-h1{color:#1e40af}
-h2{color:#333;font-size:18px;margin-top:0}
-input[type="text"]{width:100%;padding:10px;border:1px solid #ccc;border-radius:4px;font-size:14px;box-sizing:border-box}
-button{padding:12px 20px;border:none;border-radius:4px;font-size:14px;cursor:pointer;margin-top:10px;margin-right:5px}
+body{font-family:Arial,sans-serif;max-width:1200px;margin:0 auto;padding:20px;background:#f8fafc}
+.header{background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;padding:20px;border-radius:10px;margin-bottom:20px}
+.header h1{margin:0;font-size:24px}
+.box{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin-bottom:15px}
+.box h2{margin-top:0;color:#1e40af;font-size:18px}
+input[type="text"],select{width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:14px;box-sizing:border-box;margin-bottom:10px}
+button{padding:12px 20px;border:none;border-radius:6px;font-size:14px;cursor:pointer;margin-right:5px;margin-bottom:5px;font-weight:600}
 .btn-blue{background:#1e40af;color:#fff}
 .btn-blue:hover{background:#1e3a8a}
 .btn-green{background:#16a34a;color:#fff}
 .btn-green:hover{background:#15803d}
 .btn-red{background:#dc2626;color:#fff}
 .btn-red:hover{background:#b91c1c}
-#log{background:#1e293b;color:#e2e8f0;padding:15px;border-radius:4px;font-family:monospace;font-size:13px;max-height:400px;overflow-y:auto;white-space:pre-wrap;line-height:1.6}
-#log .ok{color:#86efac}
-#log .err{color:#fca5a5}
-#log .info{color:#93c5fd}
-#log .warn{color:#fcd34d}
-.status{padding:8px 12px;border-radius:20px;display:inline-block;font-size:13px;font-weight:bold;margin-top:10px}
+.status{padding:8px 16px;border-radius:20px;display:inline-block;font-size:13px;font-weight:bold}
 .status-red{background:#fee2e2;color:#991b1b}
 .status-green{background:#dcfce7;color:#166534}
 .status-yellow{background:#fef3c7;color:#92400e}
-.hidden{display:none}
-.step{margin:8px 0;padding:10px;background:#f8fafc;border-left:3px solid #3b82f6;border-radius:0 4px 4px 0}
-.step.ok{border-left-color:#16a34a;background:#f0fdf4}
-.step.err{border-left-color:#dc2626;background:#fef2f2}
+#log{background:#1e293b;color:#e2e8f0;padding:15px;border-radius:6px;font-family:monospace;font-size:12px;max-height:250px;overflow-y:auto;white-space:pre-wrap;line-height:1.5;margin-top:10px}
 table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
-th,td{padding:8px;text-align:left;border:1px solid #ddd}
+th,td{padding:10px;text-align:left;border:1px solid #ddd}
 th{background:#1e40af;color:#fff}
 tr:nth-child(even){background:#f8fafc}
+.scores-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:10px 0}
+.score-input{display:flex;flex-direction:column;align-items:center}
+.score-input label{font-size:11px;color:#64748b}
+.score-input input{width:100%;text-align:center;padding:6px;border:1px solid #ccc;border-radius:4px}
+.grid{display:grid;grid-template-columns:350px 1fr;gap:20px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card-stat{background:#fff;border-left:4px solid #3b82f6;padding:15px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.card-stat h3{font-size:13px;color:#64748b;margin:0 0 5px}
+.card-stat .value{font-size:24px;font-weight:700;color:#1e40af}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:20px}
 </style>
 <base target="_blank">
 </head>
 <body>
 
-<h1>🔧 Diagnóstico de Conexão — Hub SENAI</h1>
+<div class="header">
+<h1>📊 Diagnóstico de Maturidade em Inovação</h1>
+<p>Hub SENAI 2026 — Dashboard Online</p>
+</div>
+
+<div class="grid">
+<div class="sidebar">
 
 <div class="box">
-<h2>1️⃣ Configurar URL da API</h2>
-<p style="font-size:13px;color:#666;margin-bottom:10px">Cole a URL do Google Apps Script (deve terminar com <code>/exec</code>)</p>
-<input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec" style="margin-bottom:10px">
+<h2>🔗 Configuração</h2>
+<p style="font-size:13px;color:#666;margin:0 0 10px">Cole a URL do Google Apps Script:</p>
+<input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec">
 <div>
   <button class="btn-blue" onclick="salvarUrl()">💾 Salvar URL</button>
-  <button class="btn-green" onclick="testarConexao()">🧪 Testar Conexão</button>
-  <button class="btn-red" onclick="limparLog()">🗑️ Limpar Log</button>
+  <button class="btn-green" onclick="carregarDados()">🔄 Carregar Dados</button>
 </div>
-<div id="statusBox" class="status status-red">● Desconectado</div>
-</div>
-
-<div class="box">
-<h2>2️⃣ Log de Eventos (o que está acontecendo)</h2>
-<div id="log">Aguardando ação do usuário...
-Clique em "Salvar URL" e depois "Testar Conexão"</div>
+<div id="statusBox" class="status status-red" style="margin-top:10px">● Desconectado</div>
+<div id="log">Aguardando...</div>
 </div>
 
 <div class="box">
-<h2>3️⃣ Checklist de Verificação</h2>
-<div id="step1" class="step">⬜ URL foi salva no navegador</div>
-<div id="step2" class="step">⬜ URL contém "script.google.com"</div>
-<div id="step3" class="step">⬜ URL termina com "/exec"</div>
-<div id="step4" class="step">⬜ Requisição HTTP foi enviada</div>
-<div id="step5" class="step">⬜ API respondeu com sucesso</div>
-<div id="step6" class="step">⬜ Dados foram carregados</div>
+<h2>➕ Adicionar Respondente</h2>
+<form id="formAdd" onsubmit="salvarRespondente(event)">
+  <input type="text" id="cooperativa" placeholder="Cooperativa (ex: Capal)" required>
+  <input type="text" id="respondente" placeholder="Respondente (ex: João Silva)" required>
+  <p style="font-size:13px;color:#666;margin:5px 0">Scores por pergunta (1 a 6):</p>
+  <div class="scores-grid" id="scoresGrid"></div>
+  <button type="submit" class="btn-green" style="width:100%;margin-top:10px">💾 Salvar na Nuvem</button>
+</form>
 </div>
 
-<div class="box" id="dadosBox" style="display:none">
-<h2>4️⃣ Dados Carregados</h2>
-<div id="dadosContainer"></div>
+<div class="box">
+<h2>👥 Respondentes (<span id="contador">0</span>)</h2>
+<div id="lista"></div>
+</div>
+
+</div>
+
+<div class="main-content">
+
+<div class="stats-grid" id="stats"></div>
+
+<div class="box">
+<h2>📈 Dados</h2>
+<div id="tabela"></div>
+</div>
+
+</div>
 </div>
 
 <script>
-// ============================================
-// FUNÇÕES DE LOG
-// ============================================
-function log(msg, tipo) {
-  const box = document.getElementById('log');
-  const hora = new Date().toLocaleTimeString();
-  let cor = '';
-  if (tipo === 'ok') cor = 'ok';
-  else if (tipo === 'err') cor = 'err';
-  else if (tipo === 'warn') cor = 'warn';
-  else cor = 'info';
+// ============ CONFIGURAÇÃO ============
+var API_URL = localStorage.getItem('hub_api_url') || '';
+if(API_URL) document.getElementById('apiUrl').value = API_URL;
+
+var dados = [];
+var dimensoes = [
+  {nome:"Estratégia", perguntas:[0,1,2]},
+  {nome:"Liderança", perguntas:[3,4,5]},
+  {nome:"Cultura", perguntas:[6,7,8]},
+  {nome:"Pessoas", perguntas:[9,10,11]},
+  {nome:"Estrutura", perguntas:[12,13,14]},
+  {nome:"Processos", perguntas:[15,16,17]},
+  {nome:"Recursos", perguntas:[18,19,20]},
+  {nome:"Relacionamento", perguntas:[21,22,23]}
+];
+var MAX = 6.66666666666667;
+
+// ============ LOG ============
+function log(msg) {
+  var box = document.getElementById('log');
+  var hora = new Date().toLocaleTimeString();
   box.innerHTML += '
-[' + hora + '] <span class="' + cor + '">' + msg + '</span>';
+[' + hora + '] ' + msg;
   box.scrollTop = box.scrollHeight;
 }
 
-function limparLog() {
-  document.getElementById('log').innerHTML = 'Log limpo. Pronto para novo teste.';
-}
-
 function setStatus(texto, cor) {
-  const box = document.getElementById('statusBox');
+  var box = document.getElementById('statusBox');
   box.textContent = '● ' + texto;
   box.className = 'status status-' + cor;
 }
 
-function setStep(id, ok, msg) {
-  const el = document.getElementById(id);
-  if (ok) {
-    el.className = 'step ok';
-    el.innerHTML = '✅ ' + msg;
-  } else {
-    el.className = 'step err';
-    el.innerHTML = '❌ ' + msg;
+// ============ INICIALIZAR SCORES ============
+function initScores() {
+  var grid = document.getElementById('scoresGrid');
+  grid.innerHTML = '';
+  for(var i = 0; i < 24; i++) {
+    var div = document.createElement('div');
+    div.className = 'score-input';
+    div.innerHTML = '<label>Q' + (i+1) + '</label><input type="number" min="1" max="6" value="3" id="q' + i + '">';
+    grid.appendChild(div);
   }
 }
+initScores();
 
-// ============================================
-// SALVAR URL
-// ============================================
+// ============ SALVAR URL ============
 function salvarUrl() {
-  const url = document.getElementById('apiUrl').value.trim();
-  log('Clicou em Salvar URL', 'info');
-
-  if (!url) {
-    log('URL está vazia!', 'err');
-    alert('❌ Cole a URL primeiro!');
-    setStep('step1', false, 'URL vazia');
-    return;
-  }
-
-  log('URL digitada: ' + url, 'info');
-
-  // Salvar no localStorage
-  try {
-    localStorage.setItem('hub_senai_api_url', url);
-    log('URL salva no localStorage', 'ok');
-    setStep('step1', true, 'URL salva no navegador');
-  } catch(e) {
-    log('ERRO ao salvar no localStorage: ' + e.message, 'err');
-    setStep('step1', false, 'Erro ao salvar: ' + e.message);
-    return;
-  }
-
-  // Verificar se contém script.google.com
-  if (url.indexOf('script.google.com') === -1) {
-    log('URL não contém "script.google.com"', 'warn');
-    setStep('step2', false, 'URL não parece ser do Google Apps Script');
-  } else {
-    log('URL contém "script.google.com"', 'ok');
-    setStep('step2', true, 'URL do Google Apps Script confirmada');
-  }
-
-  // Verificar se termina com /exec
-  if (!url.endsWith('/exec')) {
-    log('URL NÃO termina com "/exec" — pode estar incorreta!', 'warn');
-    setStep('step3', false, 'URL deve terminar com "/exec"');
-  } else {
-    log('URL termina com "/exec"', 'ok');
-    setStep('step3', true, 'URL termina corretamente com "/exec"');
-  }
-
+  var url = document.getElementById('apiUrl').value.trim();
+  if(!url) { alert('Cole a URL!'); return; }
+  API_URL = url;
+  localStorage.setItem('hub_api_url', url);
+  log('URL salva: ' + url);
   setStatus('URL salva', 'yellow');
-  log('URL salva com sucesso. Agora clique em "Testar Conexão"', 'ok');
 }
 
-// ============================================
-// TESTAR CONEXÃO
-// ============================================
-function testarConexao() {
-  // Recuperar URL do localStorage ou do input
-  let url = localStorage.getItem('hub_senai_api_url') || document.getElementById('apiUrl').value.trim();
+// ============ CARREGAR DADOS ============
+function carregarDados() {
+  if(!API_URL) { alert('Salve a URL primeiro!'); return; }
 
-  log('Clicou em Testar Conexão', 'info');
+  setStatus('Carregando...', 'yellow');
+  log('Carregando dados...');
 
-  if (!url) {
-    log('Nenhuma URL configurada!', 'err');
-    alert('❌ Cole e salve a URL primeiro!');
-    setStep('step4', false, 'Nenhuma URL configurada');
-    return;
-  }
+  var url = API_URL + '?action=listar&_=' + Date.now();
+  log('GET: ' + url);
 
-  log('URL que será usada: ' + url, 'info');
-  setStatus('Testando...', 'yellow');
-
-  // Construir URL de teste
-  const testUrl = url + '?action=listar&_=' + Date.now();
-  log('Enviando requisição GET para: ' + testUrl, 'info');
-  setStep('step4', true, 'Requisição HTTP enviada');
-
-  // Fazer a requisição
-  fetch(testUrl)
-    .then(function(response) {
-      log('Resposta HTTP recebida! Status: ' + response.status, 'info');
-      return response.text();
+  fetch(url)
+    .then(function(r) {
+      log('Status: ' + r.status);
+      return r.text();
     })
     .then(function(texto) {
-      log('Texto da resposta (' + texto.length + ' chars):', 'info');
-      log(texto.substring(0, 500), 'info');
-
-      try {
-        const dados = JSON.parse(texto);
-        if (dados.success) {
-          log('✅ API respondeu com SUCESSO!', 'ok');
-          setStep('step5', true, 'API respondeu com sucesso');
-          setStatus('Conectado (' + (dados.data ? dados.data.length : 0) + ' regs)', 'green');
-
-          // Mostrar dados
-          mostrarDados(dados.data || []);
-        } else {
-          log('❌ API retornou erro: ' + dados.error, 'err');
-          setStep('step5', false, 'Erro da API: ' + dados.error);
-          setStatus('Erro na API', 'red');
-        }
-      } catch(e) {
-        log('❌ Resposta não é JSON válido!', 'err');
-        log('Erro: ' + e.message, 'err');
-        setStep('step5', false, 'Resposta não é JSON válido');
-        setStatus('Resposta inválida', 'red');
+      log('Resposta: ' + texto.substring(0, 200));
+      var result = JSON.parse(texto);
+      if(result.success) {
+        dados = result.data || [];
+        log('✅ Sucesso! ' + dados.length + ' registros');
+        setStatus('Conectado (' + dados.length + ')', 'green');
+        atualizarTudo();
+      } else {
+        log('❌ Erro: ' + result.error);
+        setStatus('Erro', 'red');
       }
     })
-    .catch(function(erro) {
-      log('❌ ERRO NA REQUISIÇÃO:', 'err');
-      log('Mensagem: ' + erro.message, 'err');
-      log('Nome: ' + erro.name, 'err');
-
-      if (erro.message.indexOf('Failed to fetch') !== -1) {
-        log('→ CORS bloqueado ou URL inacessível', 'err');
-        log('→ SOLUÇÃO: A URL deve ser acessível publicamente', 'warn');
-        log('→ Verifique se o deploy está como "Qualquer pessoa"', 'warn');
-      }
-
-      setStep('step5', false, 'Falha na conexão: ' + erro.message);
-      setStatus('Falha na conexão', 'red');
+    .catch(function(e) {
+      log('❌ Falha: ' + e.message);
+      setStatus('Falha', 'red');
     });
 }
 
-// ============================================
-// MOSTRAR DADOS
-// ============================================
-function mostrarDados(dados) {
-  const container = document.getElementById('dadosContainer');
-  const box = document.getElementById('dadosBox');
+// ============ SALVAR RESPONDENTE ============
+function salvarRespondente(e) {
+  e.preventDefault();
+  if(!API_URL) { alert('Salve a URL primeiro!'); return; }
 
-  if (dados.length === 0) {
-    container.innerHTML = '<p style="color:#666">Nenhum respondente cadastrado ainda. A API está funcionando!</p>';
-    setStep('step6', true, 'API funcionando (0 registros)');
+  var coop = document.getElementById('cooperativa').value.trim();
+  var resp = document.getElementById('respondente').value.trim();
+  var scores = [];
+  for(var i = 0; i < 24; i++) {
+    var val = parseInt(document.getElementById('q' + i).value);
+    if(val < 1 || val > 6 || isNaN(val)) { alert('Q' + (i+1) + ' deve ser 1-6'); return; }
+    scores.push(val);
+  }
+
+  log('Enviando dados...');
+
+  fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify({action:'adicionar', data:{cooperativa:coop, respondente:resp, scores:scores}})
+  })
+  .then(function(r) { return r.text(); })
+  .then(function(texto) {
+    log('Resposta: ' + texto);
+    var result = JSON.parse(texto);
+    if(result.success) {
+      log('✅ Salvo!');
+      alert('Respondente salvo com sucesso!');
+      document.getElementById('formAdd').reset();
+      initScores();
+      carregarDados();
+    } else {
+      alert('Erro: ' + result.error);
+    }
+  })
+  .catch(function(e) {
+    log('❌ Erro: ' + e.message);
+    alert('Erro ao salvar: ' + e.message);
+  });
+}
+
+// ============ ATUALIZAR INTERFACE ============
+function atualizarTudo() {
+  // Contador
+  document.getElementById('contador').textContent = dados.length;
+
+  // Lista
+  var lista = document.getElementById('lista');
+  if(dados.length === 0) {
+    lista.innerHTML = '<p style="color:#666">Nenhum respondente</p>';
   } else {
-    let html = '<p><strong>' + dados.length + ' respondente(s) encontrado(s):</strong></p>';
-    html += '<table><thead><tr><th>Cooperativa</th><th>Respondente</th><th>Média</th></tr></thead><tbody>';
+    lista.innerHTML = dados.map(function(d) {
+      return '<div style="padding:10px;background:#f8fafc;border-radius:6px;margin-bottom:8px;border:1px solid #e2e8f0">' +
+        '<strong>' + d.cooperativa + '</strong><br>' +
+        '<span style="font-size:12px;color:#666">' + d.respondente + ' | Média: ' + d.media_geral + '</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  // Tabela
+  var tabela = document.getElementById('tabela');
+  if(dados.length === 0) {
+    tabela.innerHTML = '<p style="color:#666">Nenhum dado para exibir</p>';
+  } else {
+    var html = '<table><thead><tr><th>Cooperativa</th><th>Respondente</th>';
+    for(var i = 1; i <= 24; i++) html += '<th>Q' + i + '</th>';
+    html += '<th>Média</th></tr></thead><tbody>';
     dados.forEach(function(d) {
-      html += '<tr><td>' + (d.cooperativa || '-') + '</td><td>' + (d.respondente || '-') + '</td><td>' + (d.media_geral || '-') + '</td></tr>';
+      html += '<tr><td><strong>' + d.cooperativa + '</strong></td><td>' + d.respondente + '</td>';
+      d.scores.forEach(function(s) { html += '<td>' + s + '</td>'; });
+      html += '<td><strong>' + d.media_geral + '</strong></td></tr>';
     });
     html += '</tbody></table>';
-    container.innerHTML = html;
-    setStep('step6', true, 'Dados carregados: ' + dados.length + ' registros');
+    tabela.innerHTML = html;
   }
 
-  box.style.display = 'block';
+  // Stats
+  var stats = document.getElementById('stats');
+  if(dados.length > 0) {
+    var todasNotas = [];
+    dados.forEach(function(d) { todasNotas = todasNotas.concat(d.scores); });
+    var mediaGeral = todasNotas.reduce(function(a,b){return a+b;}, 0) / todasNotas.length;
+
+    stats.innerHTML = 
+      '<div class="card-stat"><h3>Média Geral</h3><div class="value">' + mediaGeral.toFixed(2) + '</div></div>' +
+      '<div class="card-stat" style="border-left-color:#16a34a"><h3>Total Respondentes</h3><div class="value">' + dados.length + '</div></div>' +
+      '<div class="card-stat" style="border-left-color:#9333ea"><h3>Cooperativas</h3><div class="value">' + [...new Set(dados.map(function(d){return d.cooperativa}))].length + '</div></div>';
+  } else {
+    stats.innerHTML = '';
+  }
 }
 
-// ============================================
-// CARREGAR URL SALVA AO ABRIR
-// ============================================
-window.onload = function() {
-  const urlSalva = localStorage.getItem('hub_senai_api_url');
-  if (urlSalva) {
-    document.getElementById('apiUrl').value = urlSalva;
-    log('URL anterior carregada do navegador', 'info');
-  }
-};
+// Carregar automaticamente se URL já estiver salva
+if(API_URL) {
+  log('URL carregada do navegador');
+  setStatus('URL carregada', 'yellow');
+}
 </script>
 
 </body>
